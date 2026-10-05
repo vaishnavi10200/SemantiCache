@@ -1,0 +1,47 @@
+version: "3.9"
+
+services:
+
+  # Your FastAPI backend
+  backend:
+    build: ./backend
+    container_name: semanticache_backend
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=semanticache
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    depends_on:
+      - redis
+      - postgres
+    volumes:
+      - ./backend/app:/app/app   # lets you edit code without rebuilding every time
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Redis - used later for caching + event streams
+  redis:
+    image: redis:7-alpine
+    container_name: semanticache_redis
+    ports:
+      - "6379:6379"
+
+  # PostgreSQL with pgvector extension - used later for storing embeddings
+  postgres:
+    image: ankane/pgvector:latest
+    container_name: semanticache_postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=semanticache
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
